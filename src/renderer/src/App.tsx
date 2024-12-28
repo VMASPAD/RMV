@@ -1,15 +1,13 @@
 import React, { useState, useRef } from 'react'
 import { DesktopCapturerSource } from 'electron'
 import { Button } from '../../components/ui/button'
-type Source = {
-  id: string
-  name: string
-  thumbnail: string
-  icon: string
-}
+import { ScrollArea, ScrollBar } from '../../components/ui/scroll-area'
+import { Plus } from 'lucide-react'
+import HandlerFonts from './handlers/handlerFonts'
+import Ecualizer from './components/Ecualizer'
+import Footer from './components/Footer'
 
 const App: React.FC = () => {
-  const [sources, setSources] = useState<Source[]>([])
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
   const [recordedChunks, setRecordedChunks] = useState<Blob[]>([])
   const [isRecording, setIsRecording] = useState(false)
@@ -17,24 +15,14 @@ const App: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const chunksRef = useRef<Blob[]>([])
+  const [idCapture, setIdCapture] = useState('')
 
-  const getSources = async () => {
-    try {
-      const fetchedSources = await window.electron.ipcRenderer.invoke('GET_SOURCES')
-      setSources(
-        fetchedSources.map((source: DesktopCapturerSource) => ({
-          id: source.id,
-          name: source.name,
-          thumbnail: source.thumbnail.toDataURL(),
-          icon: source.appIcon
-        }))
-      )
-    } catch (error) {
-      console.error('Error al obtener fuentes:', error)
-    }
+  const getCaptureId = (id) => {
+    setIdCapture(id) // Actualiza el estado con el dato recibido del hijo
+    console.log(idCapture)
   }
-
   const startRecording = async (sourceId: string) => {
+    console.log(sourceId)
     try {
       chunksRef.current = []
       setRecordedChunks([])
@@ -139,64 +127,46 @@ const App: React.FC = () => {
 
   return (
     <div className="grid grid-rows-2">
-      <video ref={videoRef} className="w-full max-h-[500px] bg-black" controls autoPlay muted />
+      <video ref={videoRef} className="w-full max-h-[500px] bg-black" autoPlay muted />
       <div className="space-y-4">
-        {/* <Button onClick={getSources} disabled={isRecording}>
-          Obtener fuentes
-        </Button>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sources.map((source) => (
-            <Button
-              key={source.id}
-              onClick={() => startRecording(source.id)}
-              disabled={isRecording}
-              className="p-2 border rounded hover:bg-gray-100 disabled:opacity-50"
-            >
-              <div className="flex flex-col items-center">
-                <img
-                  src={source.thumbnail}
-                  alt={source.name}
-                  className="w-32 h-24 object-contain mb-2"
-                />
-                <span className="text-sm">{source.name}</span>
-              </div>
-            </Button>
-          ))}
-        </div>*/}
-
-
-        <Button
-          onClick={stopRecording}
-          disabled={!isRecording}
-          className="px-4 py-2 bg-red-500 text-white rounded disabled:opacity-50"
-        >
-          Detener Grabación
-        </Button>
-
-        {mp4Path && (
-          <div className="mt-4">
-            <p>Archivo MP4 guardado: {mp4Path}</p>
-          </div>
-        )}
 
         <div className="mt-4">
           <p>Estado de la grabación: {isRecording ? 'Grabando' : 'Detenido'}</p>
           <p>Chunks grabados: {recordedChunks.length}</p>
         </div>
-        <div className='grid grid-cols-5 gap-4'>
-          <div className='w-auto h-auto bg-blue-500 border-2 border-red-500'></div>
-          <div className='w-auto h-auto bg-blue-500 border-2 border-red-500'></div>
-          <div className='w-auto h-auto bg-blue-500 border-2 border-red-500'></div>
-          <div className='w-auto h-auto bg-blue-500 border-2 border-red-500'></div>
-          <div className='w-auto h-auto bg-blue-500 border-2 border-red-500 flex flex-col justify-center gap-5'>
-            <Button>Iniciar Grabacion</Button>
+        <div className="grid grid-cols-5 gap-4">
+          <div className="w-auto h-auto bg-blue-500 border-2 border-red-500">Escenas</div>
+          <div className="w-auto h-auto bg-blue-500 border-2 border-red-500 grid grid-rows-2 h-96">
+            <ScrollArea className="">
+              <ScrollBar orientation="vertical" />
+            </ScrollArea>
+            <div className="flex items-end">
+              <HandlerFonts sourceId={getCaptureId} />
+            </div>
+          </div>
+          <div className="w-auto h-auto bg-blue-500 border-2 border-red-500">Transicones</div>
+          <div className="w-auto h-auto bg-blue-500 border-2 border-red-500">
+            Ecualizadores
+            <Ecualizer />
+          </div>
+          <div className="w-auto h-auto bg-blue-500 border-2 border-red-500 flex flex-col justify-center gap-5">
+            <Button onClick={() => startRecording(idCapture)}>Iniciar Grabacion</Button>
+
+            <Button
+              onClick={stopRecording}
+              disabled={!isRecording}
+              className="px-4 py-2 bg-red-500 text-white rounded disabled:opacity-50"
+            >
+              Detener Grabación
+            </Button>
             <Button>Ajustes</Button>
             <Button>Directo</Button>
             <Button>Salir</Button>
           </div>
-
-</div>
+        </div>
+        <div>
+          <Footer />
+        </div>
       </div>
     </div>
   )
